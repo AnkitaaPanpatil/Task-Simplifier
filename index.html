@@ -1,1 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Simplifier — AI Productivity & Daily Organizer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            900: '#4c1d95',
+                            950: '#2e1065'
+                        },
+                        slateDark: {
+                            850: '#111827',
+                            900: '#0d1117',
+                            950: '#070a0f'
+                        },
+                        priority: {
+                            p1: '#ef4444', // Urgent & Important
+                            p2: '#f59e0b', // Important Not Urgent
+                            p3: '#3b82f6', // Urgent Not Important
+                            p4: '#64748b'  // Neither
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    
+    <style>
+        /* Custom sleek scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
 
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        
+        .pulse-subtle {
+            animation: pulse-border 2.5s infinite;
+        }
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(139, 92, 246, 0.4); }
+            50% { border-color: rgba(139, 92, 246, 0.9); }
+        }
+
+        /* Checkbox custom animation */
+        .task-check:checked + label {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slateDark-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <header class="border-b border-slate-800/80 bg-slateDark-900/90 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Logo and Tagline -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 text-lg">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+                        Task Simplifier
+                        <span class="text-[10px] font-mono font-semibold bg-brand-500/10 text-brand-400 px-2 py-0.5 rounded-full border border-brand-500/20">AI Co-Pilot</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Intelligent Task Decomposer & Daily Schedule Optimizer</p>
+                </div>
+            </div>
+
+            <!-- Focus Status & Quick Metrics -->
+            <div class="flex items-center flex-wrap gap-2.5 sm:gap-4 text-xs font-mono">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-slate-400">Streak:</span>
+                    <span id="headerStreakCount" class="font-bold text-emerald-400">4 Days</span>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                    <span class="text-slate-400">Pending:</span>
+                    <span id="headerPendingCount" class="font-bold text-amber-400">5 Tasks</span>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                    <span class="text-slate-400">Cognitive Load:</span>
+                    <span id="headerCogLoad" class="font-bold text-brand-400">Balanced (58%)</span>
+                </div>
+            </div>
+
+            <!-- Top Actions -->
+            <div class="flex items-center gap-2">
+                <button onclick="openAddTaskModal()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>New Task</span>
+                </button>
+                <button onclick="triggerSmartPlanner()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5" title="Generate AI optimal day schedule">
+                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                    <span class="hidden sm:inline">Auto-Schedule</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left 8 Columns: Task Management & Priority Views -->
+        <section class="lg:col-span-8 flex flex-col space-y-4">
+            
+            <!-- Quick Natural Language Ingestion Bar -->
+            <div class="glass-panel p-3 rounded-2xl border border-slate-800 flex items-center gap-2 shadow-lg">
+                <div class="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center flex-shrink-0 text-sm">
+                    <i class="fa-solid fa-sparkles"></i>
+                </div>
+                <input type="text" id="naturalInput" placeholder="Quick Add with Natural Language: e.g. 'File tax return before Friday 5pm urgent #finance 45m'" class="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 focus:outline-none">
+                <button onclick="handleNaturalInputSubmit()" class="px-3 py-1.5 bg-slate-800 hover:bg-brand-600 hover:text-white text-slate-300 text-xs font-semibold rounded-lg transition flex items-center gap-1">
+                    <span>Parse & Add</span>
+                    <i class="fa-solid fa-arrow-turn-down text-[10px]"></i>
+                </button>
+            </div>
+
+            <!-- View Filter Header Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slateDark-900/80 p-2 rounded-xl border border-slate-800/80">
+                <div class="inline-flex rounded-lg bg-slate-850 p-1 border border-slate-800" role="tablist">
+                    <button onclick="switchView('list')" id="viewBtnList" class="px-3 py-1.5 rounded-md text-xs font-semibold transition bg-brand-600 text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>Smart List</span>
+                    </button>
+                    <button onclick="switchView('matrix')" id="viewBtnMatrix" class="px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-table-cells-large"></i>
+                        <span>Eisenhower Matrix</span>
+                    </button>
+                    <button onclick="switchView('planner')" id="viewBtnPlanner" class="px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span>Today's Time-Block</span>
+                    </button>
+                </div>
+
+                <!-- Priority & Category Filter Dropdown -->
+                <div class="flex items-center gap-2 text-xs">
+                    <select id="filterCategorySelect" onchange="applyFilters()" class="bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-500 cursor-pointer">
+                        <option value="all">All Categories</option>
+                        <option value="Work">💼 Work</option>
+                        <option value="Personal">🌿 Personal</option>
+                        <option value="Health">🧘 Health</option>
+                        <option value="Learning">📚 Learning</option>
+                    </select>
+
+                    <button onclick="clearCompletedTasks()" class="text-slate-400 hover:text-rose-400 px-2 py-1 text-xs transition" title="Clear finished tasks">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Clean
+                    </button>
+                </div>
+            </div>
+
+            <div id="viewContainerList" class="space-y-3">
+                <div id="taskList" class="space-y-2.5">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <div id="viewContainerMatrix" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                <!-- Q1: Urgent & Important (Do First) -->
+                <div class="glass-panel p-4 rounded-2xl border-l-4 border-l-red-500 flex flex-col space-y-3 min-h-[220px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                            <h4 class="font-bold text-xs text-red-400 uppercase tracking-wider">P1: Do First (Urgent & Important)</h4>
+                        </div>
+                        <span id="matrixCountP1" class="text-[10px] font-mono bg-red-950/60 text-red-400 border border-red-800/60 px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="matrixColP1" class="space-y-2 flex-1 overflow-y-auto max-h-56"></div>
+                </div>
+
+                <!-- Q2: Not Urgent but Important (Schedule) -->
+                <div class="glass-panel p-4 rounded-2xl border-l-4 border-l-amber-500 flex flex-col space-y-3 min-h-[220px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            <h4 class="font-bold text-xs text-amber-400 uppercase tracking-wider">P2: Schedule (Important, Not Urgent)</h4>
+                        </div>
+                        <span id="matrixCountP2" class="text-[10px] font-mono bg-amber-950/60 text-amber-400 border border-amber-800/60 px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="matrixColP2" class="space-y-2 flex-1 overflow-y-auto max-h-56"></div>
+                </div>
+
+                <!-- Q3: Urgent, Not Important (Delegate / Automate) -->
+                <div class="glass-panel p-4 rounded-2xl border-l-4 border-l-blue-500 flex flex-col space-y-3 min-h-[220px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                            <h4 class="font-bold text-xs text-blue-400 uppercase tracking-wider">P3: Delegate / Fast-track</h4>
+                        </div>
+                        <span id="matrixCountP3" class="text-[10px] font-mono bg-blue-950/60 text-blue-400 border border-blue-800/60 px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="matrixColP3" class="space-y-2 flex-1 overflow-y-auto max-h-56"></div>
+                </div>
+
+                <!-- Q4: Neither Urgent nor Important (Eliminate / Defer) -->
+                <div class="glass-panel p-4 rounded-2xl border-l-4 border-l-slate-500 flex flex-col space-y-3 min-h-[220px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                            <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider">P4: Eliminate / Defer</h4>
+                        </div>
+                        <span id="matrixCountP4" class="text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="matrixColP4" class="space-y-2 flex-1 overflow-y-auto max-h-56"></div>
+                </div>
+            </div>
+
+            <div id="viewContainerPlanner" class="glass-panel p-5 rounded-2xl space-y-4 hidden">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clock text-brand-400"></i>
+                            Optimal Energy Schedule (Circadian Time-Blocking)
+                        </h3>
+                        <p class="text-xs text-slate-400">AI arranges tasks according to peak focus windows and biological energy dips.</p>
+                    </div>
+                    <button onclick="triggerSmartPlanner()" class="px-3 py-1.5 bg-brand-600/30 hover:bg-brand-600/50 border border-brand-500/40 text-brand-300 rounded-lg text-xs font-mono transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Re-Optimize</span>
+                    </button>
+                </div>
+
+                <div id="timeBlockTimeline" class="space-y-3 relative pl-4 border-l-2 border-slate-800">
+                    <!-- Schedule blocks injected via JS -->
+                </div>
+            </div>
+
+        </section>
+
+        <aside class="lg:col-span-4 flex flex-col space-y-4">
+            
+            <!-- Pomodoro / Deep Focus Timer Widget -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl flex flex-col space-y-4 border-t-2 border-t-brand-500 relative overflow-hidden">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">Deep Work Engine</h3>
+                    </div>
+                    <span id="focusModeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950 text-brand-300 border border-brand-800">
+                        25m Sprint
+                    </span>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="text-center py-2">
+                    <div id="focusTimerDisplay" class="text-4xl sm:text-5xl font-extrabold font-mono text-white tracking-tight">
+                        25:00
+                    </div>
+                    <p id="focusActiveTaskLabel" class="text-xs text-slate-400 mt-2 truncate px-4">
+                        Select any task below to anchor your focus session
+                    </p>
+                </div>
+
+                <!-- Timer Controls -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="toggleFocusTimer()" id="btnTimerToggle" class="py-2.5 rounded-xl font-bold text-xs bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/20 transition flex items-center justify-center gap-1.5 col-span-2">
+                        <i class="fa-solid fa-play text-xs" id="timerIcon"></i>
+                        <span id="timerActionText">Start Sprint</span>
+                    </button>
+                    <button onclick="resetFocusTimer()" class="py-2.5 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Reset</span>
+                    </button>
+                </div>
+
+                <!-- Duration Toggles -->
+                <div class="flex items-center justify-center gap-2 pt-1 border-t border-slate-800/60 text-[11px] font-mono text-slate-400">
+                    <button onclick="setTimerDuration(25, '25m Sprint')" class="px-2 py-0.5 rounded hover:text-white hover:bg-slate-800">25m Work</button>
+                    <span>•</span>
+                    <button onclick="setTimerDuration(5, '5m Break')" class="px-2 py-0.5 rounded hover:text-white hover:bg-slate-800">5m Rest</button>
+                    <span>•</span>
+                    <button onclick="setTimerDuration(50, '50m Deep Flow')" class="px-2 py-0.5 rounded hover:text-white hover:bg-slate-800">50m Flow</button>
+                </div>
+            </div>
+
+            <!-- AI Task Decomposer & Simplifier Copilot (Powered by Gemini) -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl flex-1 flex flex-col space-y-3.5 border border-slate-800">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-200">AI Task Simplifier</h4>
+                            <p class="text-[10px] text-slate-400">Micro-Action Deconstruction</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-mono text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/50">
+                        Cognitive Reducer
+                    </span>
+                </div>
+
+                <!-- Chat / Suggestions Log Area -->
+                <div id="aiChatBox" class="flex-1 overflow-y-auto space-y-2.5 text-xs min-h-[190px] max-h-[260px] p-2.5 bg-slateDark-900/90 rounded-xl border border-slate-800/80">
+                    <div class="p-3 rounded-xl bg-slate-850 border border-slate-800 text-slate-300 leading-relaxed text-[11px]">
+                        <span class="text-brand-400 font-bold block mb-1 flex items-center gap-1">
+                            <i class="fa-solid fa-robot"></i> Productivity Coach:
+                        </span>
+                        Overwhelmed by a large project? Click the <strong class="text-brand-300">"Simplify"</strong> button on any task or ask me below. I'll split it into frictionless 10-minute micro-steps!
+                    </div>
+                </div>
+
+                <!-- Prompt Helper Chips -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] text-slate-400">
+                    <button onclick="askCopilot('How do I prioritize when everything feels urgent?')" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-700 text-slate-300">
+                        🎯 Priority overwhelm
+                    </button>
+                    <button onclick="askCopilot('Suggest a 2-minute rule reset for afternoon sluggishness')" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-700 text-slate-300">
+                        ⚡ Afternoon reset
+                    </button>
+                </div>
+
+                <!-- AI Query Input Box -->
+                <div class="flex gap-2">
+                    <input type="text" id="aiQueryInput" placeholder="Ask how to simplify, delegate, or organize..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                    <button onclick="submitAiAdviceQuery()" id="btnAiSend" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <div id="addTaskModal" class="fixed inset-0 z-50 bg-slateDark-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slateDark-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-brand-400"></i>
+                    <span id="modalTaskTitleText">Create New Task</span>
+                </h3>
+                <button onclick="closeAddTaskModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Task Title / Goal *</label>
+                    <input type="text" id="modalInputTitle" placeholder="e.g. Prepare quarterly slide presentation" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:border-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Eisenhower Priority</label>
+                        <select id="modalInputPriority" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-brand-500 focus:outline-none">
+                            <option value="p1">P1: Urgent & Important</option>
+                            <option value="p2" selected>P2: Important, Not Urgent</option>
+                            <option value="p3">P3: Urgent, Not Important</option>
+                            <option value="p4">P4: Low Priority / Later</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Category</label>
+                        <select id="modalInputCategory" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-brand-500 focus:outline-none">
+                            <option value="Work">💼 Work</option>
+                            <option value="Personal">🌿 Personal</option>
+                            <option value="Health">🧘 Health</option>
+                            <option value="Learning">📚 Learning</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Est. Duration (Minutes)</label>
+                        <input type="number" id="modalInputDuration" value="25" min="5" step="5" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:border-brand-500 focus:outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Cognitive Load</label>
+                        <select id="modalInputEnergy" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-brand-500 focus:outline-none">
+                            <option value="High">🧠 Deep Thinking</option>
+                            <option value="Medium" selected>⚖️ Moderate Effort</option>
+                            <option value="Low">☕ Low Effort / Admin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Due Time / Target (Optional)</label>
+                    <input type="text" id="modalInputDue" placeholder="e.g. Today 4:00 PM, Tomorrow morning" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:border-brand-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeAddTaskModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-semibold">Cancel</button>
+                <button onclick="saveModalTask()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="decomposeModal" class="fixed inset-0 z-50 bg-slateDark-950/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slateDark-900 border border-brand-500/40 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-brand-600/20 text-brand-400 flex items-center justify-center">
+                        <i class="fa-solid fa-scissors"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">AI Task Simplification</h4>
+                        <p class="text-[10px] text-slate-400" id="decomposeParentTaskName">Parent Task</p>
+                    </div>
+                </div>
+                <button onclick="closeDecomposeModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Large tasks trigger subconscious avoidance. We simplified this goal into friction-free, actionable steps:
+            </p>
+
+            <!-- Generated Subtasks Container -->
+            <div id="decomposeSubtasksList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <!-- Subtasks generated here -->
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+                <span class="text-[10px] text-slate-400">Total micro-actions: <strong id="decomposeSubtaskCount" class="text-brand-300">4</strong></span>
+                <div class="flex gap-2">
+                    <button onclick="closeDecomposeModal()" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs">Dismiss</button>
+                    <button onclick="applyDecomposedSubtasks()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-check-double"></i>
+                        <span>Apply Subtasks</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="taskToast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 max-w-sm bg-slateDark-900 border border-slate-700 p-3.5 rounded-xl shadow-2xl flex items-center gap-3">
+        <div id="toastIcon" class="w-8 h-8 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center text-base flex-shrink-0">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div class="flex-1 text-xs">
+            <div id="toastTitle" class="font-bold text-slate-100">Task Updated</div>
+            <div id="toastDesc" class="text-slate-400 text-[11px]">Action completed successfully</div>
+        </div>
+        <button onclick="hideToast()" class="text-slate-500 hover:text-slate-300">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <script>
+        // Audio synthesis for haptic / chime feedback without external audio files
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playChime(type = 'complete') {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'complete') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                } else if (type === 'timerDone') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2); // E5
+                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.4); // G5
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.8);
+                }
+            } catch (e) {
+                console.warn('Web Audio note unable to play:', e);
+            }
+        }
+
+        // Application State & Initial Preloaded Tasks
+        const STORAGE_KEY = 'TASK_SIMPLIFIER_STATE_V1';
+        let state = {
+            currentView: 'list', // 'list' | 'matrix' | 'planner'
+            categoryFilter: 'all',
+            activeFocusTaskId: null,
+            timer: {
+                totalSeconds: 25 * 60,
+                remainingSeconds: 25 * 60,
+                isRunning: false,
+                modeLabel: '25m Sprint',
+                intervalId: null
+            },
+            activeDecomposingTaskId: null,
+            tempDecomposedSubtasks: [],
+            tasks: [
+                {
+                    id: 'tsk_1',
+                    title: 'Draft quarterly product roadmap review',
+                    priority: 'p1', // p1, p2, p3, p4
+                    category: 'Work',
+                    duration: 45,
+                    energy: 'High',
+                    due: 'Today 3:00 PM',
+                    completed: false,
+                    subtasks: [
+                        { id: 'sub_1', text: 'Outline top 3 customer feedback themes', done: true },
+                        { id: 'sub_2', text: 'Aggregate sprint completion metrics', done: false },
+                        { id: 'sub_3', text: 'Draft slide summary recommendations', done: false }
+                    ]
+                },
+                {
+                    id: 'tsk_2',
+                    title: 'Schedule annual wellness blood test',
+                    priority: 'p2',
+                    category: 'Health',
+                    duration: 15,
+                    energy: 'Low',
+                    due: 'Tomorrow morning',
+                    completed: false,
+                    subtasks: []
+                },
+                {
+                    id: 'tsk_3',
+                    title: 'Declutter and reorganize home workspace desk',
+                    priority: 'p3',
+                    category: 'Personal',
+                    duration: 20,
+                    energy: 'Low',
+                    due: 'Tonight',
+                    completed: false,
+                    subtasks: []
+                },
+                {
+                    id: 'tsk_4',
+                    title: 'Read chapter 4 of Distributed Systems primer',
+                    priority: 'p2',
+                    category: 'Learning',
+                    duration: 35,
+                    energy: 'High',
+                    due: 'This week',
+                    completed: true,
+                    subtasks: []
+                },
+                {
+                    id: 'tsk_5',
+                    title: 'Respond to vendor invoice inquiries',
+                    priority: 'p3',
+                    category: 'Work',
+                    duration: 15,
+                    energy: 'Medium',
+                    due: 'Today 5:00 PM',
+                    completed: false,
+                    subtasks: []
+                }
+            ]
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPersistedState();
+            renderAllViews();
+            updateTopMetrics();
+            updateTimerDisplay();
+
+            // Keyboard shortcut: Enter on natural input
+            document.getElementById('naturalInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleNaturalInputSubmit();
+            });
+
+            // Keyboard shortcut: Enter on AI chat input
+            document.getElementById('aiQueryInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitAiAdviceQuery();
+            });
+        });
+
+        function saveStateToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    tasks: state.tasks
+                }));
+            } catch (e) {
+                console.warn('Unable to persist to localStorage:', e);
+            }
+        }
+
+        function loadPersistedState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
+                        state.tasks = parsed.tasks;
+                    }
+                }
+            } catch (e) {
+                console.warn('Using default tasks state:', e);
+            }
+        }
+
+        function renderAllViews() {
+            renderTaskList();
+            renderMatrixView();
+            renderPlannerTimeline();
+            updateTopMetrics();
+        }
+
+        function switchView(view) {
+            state.currentView = view;
+            
+            const btnList = document.getElementById('viewBtnList');
+            const btnMatrix = document.getElementById('viewBtnMatrix');
+            const btnPlanner = document.getElementById('viewBtnPlanner');
+
+            const conList = document.getElementById('viewContainerList');
+            const conMatrix = document.getElementById('viewContainerMatrix');
+            const conPlanner = document.getElementById('viewContainerPlanner');
+
+            [btnList, btnMatrix, btnPlanner].forEach(b => {
+                b.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5";
+            });
+
+            conList.classList.add('hidden');
+            conMatrix.classList.add('hidden');
+            conPlanner.classList.add('hidden');
+
+            if (view === 'list') {
+                conList.classList.remove('hidden');
+                btnList.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition bg-brand-600 text-white flex items-center gap-1.5";
+            } else if (view === 'matrix') {
+                conMatrix.classList.remove('hidden');
+                btnMatrix.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition bg-brand-600 text-white flex items-center gap-1.5";
+                renderMatrixView();
+            } else if (view === 'planner') {
+                conPlanner.classList.remove('hidden');
+                btnPlanner.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition bg-brand-600 text-white flex items-center gap-1.5";
+                renderPlannerTimeline();
+            }
+        }
+
+        function applyFilters() {
+            state.categoryFilter = document.getElementById('filterCategorySelect').value;
+            renderAllViews();
+        }
+
+        function getFilteredTasks() {
+            if (state.categoryFilter === 'all') return state.tasks;
+            return state.tasks.filter(t => t.category === state.categoryFilter);
+        }
+
+        function renderTaskList() {
+            const container = document.getElementById('taskList');
+            container.innerHTML = '';
+
+            const filtered = getFilteredTasks();
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-panel p-8 rounded-2xl text-center text-slate-500 text-xs">
+                        <i class="fa-solid fa-clipboard-check text-3xl text-slate-600 mb-2"></i>
+                        <p>No tasks found in this category. Use the Quick Add bar above to add one!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(task => {
+                const priorityStyles = {
+                    p1: { border: 'border-l-red-500', badge: 'bg-red-950/60 text-red-400 border-red-800/60', label: 'P1: Urgent' },
+                    p2: { border: 'border-l-amber-500', badge: 'bg-amber-950/60 text-amber-400 border-amber-800/60', label: 'P2: Important' },
+                    p3: { border: 'border-l-blue-500', badge: 'bg-blue-950/60 text-blue-400 border-blue-800/60', label: 'P3: Fast-track' },
+                    p4: { border: 'border-l-slate-500', badge: 'bg-slate-800 text-slate-400 border-slate-700', label: 'P4: Later' }
+                }[task.priority] || { border: 'border-l-slate-600', badge: 'bg-slate-800 text-slate-400 border-slate-700', label: 'P2' };
+
+                const card = document.createElement('div');
+                card.className = `glass-panel p-3.5 rounded-xl border-l-4 ${priorityStyles.border} transition-all hover:border-brand-500/60 space-y-2.5 ${task.completed ? 'opacity-60' : ''}`;
+
+                // Subtask list markup if present
+                let subtasksMarkup = '';
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const doneCount = task.subtasks.filter(s => s.done).length;
+                    const pct = Math.round((doneCount / task.subtasks.length) * 100);
+
+                    subtasksMarkup = `
+                        <div class="pt-2 mt-2 border-t border-slate-800/70 space-y-1.5">
+                            <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                                <span>Micro-steps progress: ${doneCount}/${task.subtasks.length}</span>
+                                <span>${pct}%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                            </div>
+                            <div class="space-y-1 pt-1">
+                                ${task.subtasks.map(sub => `
+                                    <div class="flex items-center gap-2 text-xs text-slate-300 hover:text-white">
+                                        <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="toggleSubtask('${task.id}', '${sub.id}')" class="w-3.5 h-3.5 accent-brand-500 rounded cursor-pointer">
+                                        <span class="${sub.done ? 'line-through text-slate-500' : ''}">${sub.text}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 flex-1">
+                            <input type="checkbox" id="check_${task.id}" ${task.completed ? 'checked' : ''} onchange="toggleTaskComplete('${task.id}')" class="w-4 h-4 mt-1 accent-brand-500 rounded cursor-pointer task-check flex-shrink-0">
+                            <div class="flex-1">
+                                <label for="check_${task.id}" class="text-xs sm:text-sm font-semibold text-slate-200 cursor-pointer select-none block">
+                                    ${task.title}
+                                </label>
+                                <div class="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] font-mono text-slate-400">
+                                    <span class="px-1.5 py-0.5 rounded border ${priorityStyles.badge}">${priorityStyles.label}</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">${task.category}</span>
+                                    <span><i class="fa-regular fa-clock mr-1"></i>${task.duration}m</span>
+                                    <span><i class="fa-solid fa-brain mr-1 text-brand-400"></i>${task.energy} Load</span>
+                                    ${task.due ? `<span class="text-amber-400/90"><i class="fa-regular fa-calendar mr-1"></i>${task.due}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button onclick="setFocusTask('${task.id}')" title="Set as Active Focus Task" class="p-1.5 text-slate-400 hover:text-brand-400 hover:bg-slate-800 rounded-lg text-xs transition">
+                                <i class="fa-solid fa-crosshairs"></i>
+                            </button>
+                            <button onclick="triggerTaskDecompose('${task.id}')" title="AI Decompose / Simplify into micro-steps" class="px-2 py-1 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
+                                <span class="hidden sm:inline">Simplify</span>
+                            </button>
+                            <button onclick="deleteTask('${task.id}')" title="Delete Task" class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg text-xs transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    ${subtasksMarkup}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderMatrixView() {
+            const cols = {
+                p1: document.getElementById('matrixColP1'),
+                p2: document.getElementById('matrixColP2'),
+                p3: document.getElementById('matrixColP3'),
+                p4: document.getElementById('matrixColP4')
+            };
+
+            ['p1', 'p2', 'p3', 'p4'].forEach(p => {
+                if (cols[p]) cols[p].innerHTML = '';
+            });
+
+            const counts = { p1: 0, p2: 0, p3: 0, p4: 0 };
+            const filtered = getFilteredTasks();
+
+            filtered.forEach(task => {
+                const colKey = task.priority in cols ? task.priority : 'p2';
+                counts[colKey]++;
+
+                const mini = document.createElement('div');
+                mini.className = `p-2 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs hover:border-slate-700 transition ${task.completed ? 'opacity-50' : ''}`;
+                mini.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskComplete('${task.id}')" class="w-3.5 h-3.5 accent-brand-500 rounded cursor-pointer">
+                        <span class="truncate ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.title}</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400 ml-2 whitespace-nowrap">${task.duration}m</span>
+                `;
+                cols[colKey].appendChild(mini);
+            });
+
+            document.getElementById('matrixCountP1').textContent = counts.p1;
+            document.getElementById('matrixCountP2').textContent = counts.p2;
+            document.getElementById('matrixCountP3').textContent = counts.p3;
+            document.getElementById('matrixCountP4').textContent = counts.p4;
+        }
+
+        function renderPlannerTimeline() {
+            const container = document.getElementById('timeBlockTimeline');
+            container.innerHTML = '';
+
+            const pending = state.tasks.filter(t => !t.completed);
+            
+            // Sort by priority and cognitive load for optimal circadian rhythm
+            // High cognitive work placed in Morning Deep Work slots
+            const highEnergyTasks = pending.filter(t => t.energy === 'High');
+            const medEnergyTasks = pending.filter(t => t.energy === 'Medium');
+            const lowEnergyTasks = pending.filter(t => t.energy === 'Low');
+
+            const scheduleBlocks = [
+                { time: '09:00 AM - 10:30 AM', title: 'Peak Morning Flow (Deep Work)', desc: 'Highest prefrontal focus. Tackle complex creative or analytical problems.', tasks: highEnergyTasks.slice(0, 2), icon: 'fa-brain', color: 'text-indigo-400' },
+                { time: '11:00 AM - 12:00 PM', title: 'Urgent Execution & Standups', desc: 'Active communication and time-sensitive milestones.', tasks: pending.filter(t => t.priority === 'p1').slice(0, 2), icon: 'fa-bolt', color: 'text-amber-400' },
+                { time: '01:30 PM - 03:00 PM', title: 'Post-Lunch Steady Cadence', desc: 'Moderate cognitive tasks, document drafting, and collaborative reviews.', tasks: medEnergyTasks.slice(0, 2), icon: 'fa-cubes', color: 'text-brand-400' },
+                { time: '04:00 PM - 05:00 PM', title: 'Low-Stakes Admin & Inbox Zero', desc: 'Biological dip window. Clear routine emails, scheduling, and workspace reset.', tasks: lowEnergyTasks.slice(0, 2), icon: 'fa-coffee', color: 'text-emerald-400' }
+            ];
+
+            scheduleBlocks.forEach(block => {
+                const el = document.createElement('div');
+                el.className = "relative group";
+                el.innerHTML = `
+                    <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-slateDark-950"></div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs ${block.color} flex items-center gap-1.5">
+                                <i class="fa-solid ${block.icon}"></i> ${block.title}
+                            </span>
+                            <span class="text-[10px] font-mono text-slate-400">${block.time}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">${block.desc}</p>
+                        ${block.tasks.length > 0 ? `
+                            <div class="space-y-1 pt-1 border-t border-slate-800">
+                                ${block.tasks.map(t => `
+                                    <div class="flex items-center justify-between text-xs bg-slate-850 px-2.5 py-1.5 rounded-lg">
+                                        <span class="text-slate-200 truncate">${t.title}</span>
+                                        <span class="text-[10px] font-mono text-brand-300 ml-2">${t.duration}m</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <p class="text-[10px] text-slate-500 italic">No pending tasks assigned to this slot yet.</p>
+                        `}
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function toggleTaskComplete(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if (!task) return;
+
+            task.completed = !task.completed;
+            if (task.completed) {
+                playChime('complete');
+                showToast(`Completed: ${task.title}`, 'fa-trophy');
+            }
+            saveStateToStorage();
+            renderAllViews();
+        }
+
+        function toggleSubtask(taskId, subId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task || !task.subtasks) return;
+
+            const sub = task.subtasks.find(s => s.id === subId);
+            if (sub) {
+                sub.done = !sub.done;
+                if (sub.done) playChime('complete');
+                saveStateToStorage();
+                renderAllViews();
+            }
+        }
+
+        function deleteTask(id) {
+            state.tasks = state.tasks.filter(t => t.id !== id);
+            saveStateToStorage();
+            renderAllViews();
+            showToast('Task removed', 'fa-trash-can');
+        }
+
+        function clearCompletedTasks() {
+            const count = state.tasks.filter(t => t.completed).length;
+            if (count === 0) {
+                showToast('No completed tasks to clean up', 'fa-info-circle');
+                return;
+            }
+            state.tasks = state.tasks.filter(t => !t.completed);
+            saveStateToStorage();
+            renderAllViews();
+            showToast(`Cleaned up ${count} finished tasks`, 'fa-broom');
+        }
+
+        function updateTopMetrics() {
+            const pending = state.tasks.filter(t => !t.completed);
+            document.getElementById('headerPendingCount').textContent = `${pending.length} Tasks`;
+
+            // Calculate cognitive load percentage based on high/med/low energy weights
+            let totalLoadScore = 0;
+            pending.forEach(t => {
+                if (t.energy === 'High') totalLoadScore += 30;
+                else if (t.energy === 'Medium') totalLoadScore += 18;
+                else totalLoadScore += 8;
+            });
+            const clamped = Math.min(100, Math.max(10, totalLoadScore));
+            
+            const cogLabel = document.getElementById('headerCogLoad');
+            if (clamped < 40) {
+                cogLabel.textContent = `Light (${clamped}%)`;
+                cogLabel.className = 'font-bold text-emerald-400';
+            } else if (clamped < 75) {
+                cogLabel.textContent = `Balanced (${clamped}%)`;
+                cogLabel.className = 'font-bold text-brand-400';
+            } else {
+                cogLabel.textContent = `High Demand (${clamped}%)`;
+                cogLabel.className = 'font-bold text-amber-400';
+            }
+        }
+
+        function handleNaturalInputSubmit() {
+            const input = document.getElementById('naturalInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            let priority = 'p2';
+            let category = 'Work';
+            let duration = 25;
+            let due = '';
+
+            const lower = text.toLowerCase();
+            if (lower.includes('urgent') || lower.includes('asap') || lower.includes('p1')) priority = 'p1';
+            else if (lower.includes('delegate') || lower.includes('p3')) priority = 'p3';
+            else if (lower.includes('someday') || lower.includes('later') || lower.includes('p4')) priority = 'p4';
+
+            if (lower.includes('#health') || lower.includes('doctor') || lower.includes('workout') || lower.includes('gym')) category = 'Health';
+            else if (lower.includes('#personal') || lower.includes('grocery') || lower.includes('home')) category = 'Personal';
+            else if (lower.includes('#learning') || lower.includes('study') || lower.includes('read') || lower.includes('book')) category = 'Learning';
+
+            // Extract minutes pattern like "45m" or "30 min"
+            const durMatch = text.match(/(\d+)\s*(?:m|mins|min)/i);
+            if (durMatch) duration = parseInt(durMatch[1], 10);
+
+            // Clean title
+            const cleanTitle = text
+                .replace(/#\w+/g, '')
+                .replace(/(?:urgent|asap|p1|p2|p3|p4)/gi, '')
+                .replace(/\d+\s*(?:m|mins|min)/gi, '')
+                .trim();
+
+            const newTask = {
+                id: 'tsk_' + Date.now(),
+                title: cleanTitle || text,
+                priority: priority,
+                category: category,
+                duration: duration,
+                energy: duration >= 40 ? 'High' : (duration >= 20 ? 'Medium' : 'Low'),
+                due: 'Today',
+                completed: false,
+                subtasks: []
+            };
+
+            state.tasks.unshift(newTask);
+            saveStateToStorage();
+            renderAllViews();
+            input.value = '';
+            showToast(`Parsed & Added: "${newTask.title}"`, 'fa-sparkles');
+        }
+
+        function openAddTaskModal() {
+            document.getElementById('modalInputTitle').value = '';
+            document.getElementById('modalInputDuration').value = 25;
+            document.getElementById('modalInputDue').value = '';
+            document.getElementById('addTaskModal').classList.remove('hidden');
+            document.getElementById('modalInputTitle').focus();
+        }
+
+        function closeAddTaskModal() {
+            document.getElementById('addTaskModal').classList.add('hidden');
+        }
+
+        function saveModalTask() {
+            const title = document.getElementById('modalInputTitle').value.trim();
+            if (!title) {
+                showToast('Please enter a task title', 'fa-triangle-exclamation');
+                return;
+            }
+
+            const priority = document.getElementById('modalInputPriority').value;
+            const category = document.getElementById('modalInputCategory').value;
+            const duration = parseInt(document.getElementById('modalInputDuration').value, 10) || 25;
+            const energy = document.getElementById('modalInputEnergy').value;
+            const due = document.getElementById('modalInputDue').value.trim();
+
+            const newTask = {
+                id: 'tsk_' + Date.now(),
+                title: title,
+                priority: priority,
+                category: category,
+                duration: duration,
+                energy: energy,
+                due: due,
+                completed: false,
+                subtasks: []
+            };
+
+            state.tasks.unshift(newTask);
+            saveStateToStorage();
+            renderAllViews();
+            closeAddTaskModal();
+            showToast('New task scheduled', 'fa-check');
+        }
+
+        async function triggerTaskDecompose(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            state.activeDecomposingTaskId = taskId;
+            document.getElementById('decomposeParentTaskName').textContent = task.title;
+
+            const modal = document.getElementById('decomposeModal');
+            const container = document.getElementById('decomposeSubtasksList');
+            container.innerHTML = `
+                <div class="p-6 text-center text-slate-400 text-xs italic flex flex-col items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-notch fa-spin text-brand-400 text-xl"></i>
+                    <span>Athena AI is breaking down cognitive friction into 5–15 minute micro-actions...</span>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+
+            const prompt = `You are an elite productivity engineer. 
+Take this complex or potentially overwhelming task: "${task.title}" (Estimated duration: ${task.duration}m, Category: ${task.category}).
+Decompose it into exactly 3 to 4 bite-sized, sequential micro-steps that eliminate initiation friction.
+Each micro-step should be concrete and achievable in under 15 minutes.
+Return a valid JSON array of strings only.
+Example format:
+["Open file and review previous notes", "Write a 3-bullet core outline", "Draft first rough section"]`;
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                const rawJson = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (rawJson) {
+                    const parsed = JSON.parse(rawJson);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        displayDecomposedSubtasks(parsed);
+                        return;
+                    }
+                }
+                throw new Error('Invalid AI response');
+            } catch (err) {
+                console.warn('Falling back to local heuristic task decomposer:', err);
+                const heuristicSubtasks = generateHeuristicSubtasks(task.title);
+                displayDecomposedSubtasks(heuristicSubtasks);
+            }
+        }
+
+        function generateHeuristicSubtasks(title) {
+            return [
+                `Clarify outcome: Write 1 sentence defining when "${title}" is done`,
+                `Gather prerequisites: Open relevant documents, links, or tools`,
+                `Sprint 1: Complete 15 minutes of uninterrupted first-pass work`,
+                `Review & Polish: Check completion against initial objective`
+            ];
+        }
+
+        function displayDecomposedSubtasks(subtasks) {
+            state.tempDecomposedSubtasks = subtasks;
+            const container = document.getElementById('decomposeSubtasksList');
+            document.getElementById('decomposeSubtaskCount').textContent = subtasks.length;
+            container.innerHTML = '';
+
+            subtasks.forEach((txt, idx) => {
+                const row = document.createElement('div');
+                row.className = "p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs";
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-5 h-5 rounded-md bg-brand-500/20 text-brand-400 font-bold text-[10px] flex items-center justify-center">${idx + 1}</span>
+                        <span class="text-slate-200">${txt}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 font-mono">~10m</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function applyDecomposedSubtasks() {
+            if (!state.activeDecomposingTaskId || state.tempDecomposedSubtasks.length === 0) return;
+
+            const task = state.tasks.find(t => t.id === state.activeDecomposingTaskId);
+            if (task) {
+                task.subtasks = state.tempDecomposedSubtasks.map((txt, i) => ({
+                    id: 'sub_' + Date.now() + '_' + i,
+                    text: txt,
+                    done: false
+                }));
+                saveStateToStorage();
+                renderAllViews();
+                showToast('Micro-actions added to task', 'fa-check-double');
+            }
+            closeDecomposeModal();
+        }
+
+        function closeDecomposeModal() {
+            document.getElementById('decomposeModal').classList.add('hidden');
+        }
+
+        function setFocusTask(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            state.activeFocusTaskId = taskId;
+            document.getElementById('focusActiveTaskLabel').innerHTML = `Focusing on: <strong class="text-brand-300">${task.title}</strong>`;
+            showToast(`Task anchored to Focus Timer`, 'fa-crosshairs');
+        }
+
+        function setTimerDuration(mins, label) {
+            if (state.timer.isRunning) toggleFocusTimer();
+            state.timer.totalSeconds = mins * 60;
+            state.timer.remainingSeconds = mins * 60;
+            state.timer.modeLabel = label;
+            document.getElementById('focusModeBadge').textContent = label;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(state.timer.remainingSeconds / 60);
+            const secs = state.timer.remainingSeconds % 60;
+            document.getElementById('focusTimerDisplay').textContent = 
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function toggleFocusTimer() {
+            const btnText = document.getElementById('timerActionText');
+            const icon = document.getElementById('timerIcon');
+
+            if (state.timer.isRunning) {
+                // Pause
+                clearInterval(state.timer.intervalId);
+                state.timer.isRunning = false;
+                btnText.textContent = "Resume Sprint";
+                icon.className = "fa-solid fa-play text-xs";
+                showToast("Timer paused", "fa-pause");
+            } else {
+                // Start
+                state.timer.isRunning = true;
+                btnText.textContent = "Pause Session";
+                icon.className = "fa-solid fa-pause text-xs";
+
+                state.timer.intervalId = setInterval(() => {
+                    if (state.timer.remainingSeconds > 0) {
+                        state.timer.remainingSeconds--;
+                        updateTimerDisplay();
+                    } else {
+                        // Timer completed
+                        clearInterval(state.timer.intervalId);
+                        state.timer.isRunning = false;
+                        btnText.textContent = "Start Sprint";
+                        icon.className = "fa-solid fa-play text-xs";
+                        playChime('timerDone');
+                        showToast("🎉 Focus sprint completed! Great job!", "fa-trophy");
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetFocusTimer() {
+            if (state.timer.isRunning) {
+                clearInterval(state.timer.intervalId);
+                state.timer.isRunning = false;
+                document.getElementById('timerActionText').textContent = "Start Sprint";
+                document.getElementById('timerIcon').className = "fa-solid fa-play text-xs";
+            }
+            state.timer.remainingSeconds = state.timer.totalSeconds;
+            updateTimerDisplay();
+            showToast("Focus timer reset", "fa-rotate-left");
+        }
+
+        async function submitAiAdviceQuery() {
+            const input = document.getElementById('aiQueryInput');
+            const query = input.value.trim();
+            if (!query) return;
+
+            input.value = '';
+            appendAiMessage('user', query);
+
+            const btn = document.getElementById('btnAiSend');
+            btn.disabled = true;
+
+            const chatBox = document.getElementById('aiChatBox');
+            const thinking = document.createElement('div');
+            thinking.id = 'aiThinkingIndicator';
+            thinking.className = "p-2.5 rounded-xl bg-slate-850 border border-slate-800 text-slate-400 text-xs italic flex items-center gap-2";
+            thinking.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-brand-400"></i> Formulating cognitive optimization insight...`;
+            chatBox.appendChild(thinking);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const pendingTitles = state.tasks.filter(t => !t.completed).map(t => t.title).slice(0, 5).join(', ');
+
+            const systemPrompt = `You are a high-performance cognitive psychologist and executive productivity coach in the Task Simplifier app.
+User's current pending tasks: [${pendingTitles}].
+Deliver actionable, empathetic, and concise productivity counsel (max 2 short paragraphs). Emphasize energy management, eliminating friction, and single-tasking.`;
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: query }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                removeThinkingIndicator();
+                if (aiReply) {
+                    appendAiMessage('copilot', aiReply);
+                } else {
+                    throw new Error('Empty response');
+                }
+            } catch (err) {
+                removeThinkingIndicator();
+                const fallback = generateHeuristicAdvice(query);
+                appendAiMessage('copilot', fallback);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function generateHeuristicAdvice(q) {
+            const lower = q.toLowerCase();
+            if (lower.includes('overwhelm') || lower.includes('urgent')) {
+                return `**The 1-Task Lockdown:** When everything feels urgent, pick just ONE task and write it on a physical post-it note. Minimize all other tabs. Progress on one item instantly relieves decision fatigue.`;
+            } else if (lower.includes('afternoon') || lower.includes('sluggish') || lower.includes('energy')) {
+                return `**Circadian Reset:** The 2:00 PM lull is physiological. Swap to low-friction tasks (inbox clearing or file organizing) or take a 7-minute walk and hydrate. Never force high-energy creative work during a cortisol dip.`;
+            } else {
+                return `**The 2-Minute Gateway:** Lower the threshold for starting. Tell yourself you will only work on your target task for 2 minutes. Once inertia is broken, sustained flow follows naturally.`;
+            }
+        }
+
+        function askCopilot(text) {
+            document.getElementById('aiQueryInput').value = text;
+            submitAiAdviceQuery();
+        }
+
+        function triggerSmartPlanner() {
+            switchView('planner');
+            showToast("Daily Energy Schedule optimized", "fa-bolt");
+        }
+
+        function appendAiMessage(sender, text) {
+            const chatBox = document.getElementById('aiChatBox');
+            const bubble = document.createElement('div');
+            if (sender === 'user') {
+                bubble.className = "p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs ml-4 text-right";
+                bubble.innerHTML = `<span class="text-brand-400 font-bold block text-[10px] mb-0.5">You</span>${text}`;
+            } else {
+                bubble.className = "p-2.5 rounded-xl bg-slate-850 border border-slate-800 text-slate-300 text-xs mr-2 leading-relaxed";
+                bubble.innerHTML = `<span class="text-brand-400 font-bold block text-[10px] mb-0.5 flex items-center gap-1"><i class="fa-solid fa-robot"></i> Productivity Coach</span>${text.replace(/\n/g, '<br>')}`;
+            }
+            chatBox.appendChild(bubble);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeThinkingIndicator() {
+            const el = document.getElementById('aiThinkingIndicator');
+            if (el) el.remove();
+        }
+
+        let toastTimer = null;
+        function showToast(title, icon = 'fa-check') {
+            const toast = document.getElementById('taskToast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastIcon').innerHTML = `<i class="fa-solid ${icon}"></i>`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(hideToast, 3500);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('taskToast');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }
+    </script>
+</body>
+</html>
